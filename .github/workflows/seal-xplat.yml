@@ -1,0 +1,40 @@
+name: seal-xplat
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    name: build_${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['14', '12', '10']
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Build dotjs templates
+        run: npm run build
+      - name: Run spec test suite
+        run: npm run test-spec
+      - name: Bundle dist
+        if: matrix.node == '14'
+        run: npm run bundle
+      - name: Pack tarball
+        if: matrix.node == '14'
+        run: npm pack
+      - name: Upload tarball
+        if: matrix.node == '14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ajv-tgz
+          path: ajv-6.12.5.tgz
+          if-no-files-found: error
